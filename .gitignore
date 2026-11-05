@@ -1,11 +1,4 @@
-.env
 node_modules/
-# Dependencies
-node_modules/
-
-# Environment variables / API keys
 .env
-
-# System files
 .DS_Store
 Thumbs.db
