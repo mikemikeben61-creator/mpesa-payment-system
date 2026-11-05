@@ -7,7 +7,13 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.')); // Serves index.html, style.css, app.js
+app.use(express.static('.'));
+
+// Determine Environment (sandbox or production)
+const MPESA_ENV = process.env.MPESA_ENV || 'sandbox';
+const BASE_URL = MPESA_ENV === 'production'
+    ? 'https://api.safaricom.co.ke'
+    : 'https://sandbox.safaricom.co.ke';
 
 // 1. Generate Safaricom Access Token Middleware
 async function getAccessToken(req, res, next) {
@@ -17,7 +23,7 @@ async function getAccessToken(req, res, next) {
 
     try {
         const response = await axios.get(
-            'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+            `${BASE_URL}/oauth/v1/generate?grant_type=client_credentials`,
             { headers: { authorization: `Basic ${auth}` } }
         );
         req.token = response.data.access_token;
@@ -28,10 +34,21 @@ async function getAccessToken(req, res, next) {
     }
 }
 
-// 2. STK Push Request Route (Triggers prompt on phone)
+// 2. STK Push Request Route
 app.post('/api/stkpush', getAccessToken, async (req, res) => {
-    const phone = req.body.phone;
-    const amount = req.body.amount;
+    let { phone, amount } = req.body;
+
+    if (!phone || !amount) {
+        return res.status(400).json({ error: 'Phone number and amount are required' });
+    }
+
+    // Sanitize phone number format to 2547XXXXXXXX
+    phone = phone.toString().trim();
+    if (phone.startsWith('0')) {
+        phone = '254' + phone.slice(1);
+    } else if (phone.startsWith('+')) {
+        phone = phone.slice(1);
+    }
 
     const date = new Date();
     const timestamp = date.getFullYear() +
@@ -47,7 +64,7 @@ app.post('/api/stkpush', getAccessToken, async (req, res) => {
 
     try {
         const response = await axios.post(
-            'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+            `${BASE_URL}/mpesa/stkpush/v1/processrequest`,
             {
                 BusinessShortCode: shortCode,
                 Password: password,
@@ -58,7 +75,7 @@ app.post('/api/stkpush', getAccessToken, async (req, res) => {
                 PartyB: shortCode,
                 PhoneNumber: phone,
                 CallBackURL: process.env.MPESA_CALLBACK_URL,
-                AccountReference: 'WEBPAY',
+                AccountReference: process.env.MPESA_ACCOUNT_REF || 'WEBPAY',
                 TransactionDesc: 'Web Payment'
             },
             {
@@ -72,7 +89,7 @@ app.post('/api/stkpush', getAccessToken, async (req, res) => {
     }
 });
 
-// 3. M-Pesa Callback Route (Receives response when user enters PIN)
+// 3. M-Pesa Callback Route
 app.post('/api/mpesa/callback', (req, res) => {
     console.log('\n====================================');
     console.log('📬 M-PESA CALLBACK RECEIVED FROM SAFARICOM!');
@@ -91,6 +108,8 @@ app.post('/api/mpesa/callback', (req, res) => {
         console.log(`💰 Amount: KSh ${amount}`);
         console.log(`🧾 Receipt: ${mpesaReceiptNumber}`);
         console.log(`📱 Phone: ${phoneNumber}\n`);
+        
+        // TODO: Update database order status here
     } else {
         console.log(`\n❌ Payment failed or cancelled by user.`);
     }
@@ -101,5 +120,5 @@ app.post('/api/mpesa/callback', (req, res) => {
 // 4. Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT} [Mode: ${MPESA_ENV}]`);
 });

@@ -21,16 +21,17 @@ document.getElementById('paymentForm').addEventListener('submit', async function
     payButton.textContent = 'Processing...';
 
     try {
-        const response = await fetch('http://localhost:3000/api/stkpush', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-        phone: formattedPhone,
-        amount: amountInput
-    })
-});
+        // FIXED: Using a relative path works both locally and when hosted live
+        const response = await fetch('/api/stkpush', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                phone: formattedPhone,
+                amount: amountInput
+            })
+        });
 
         const data = await response.json();
 
