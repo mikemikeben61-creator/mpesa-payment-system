@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>M-Pesa Payment Request</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <h1>M-Pesa Payment</h1>
+    <p>Enter your details to request a secure payment prompt.</p>
+
+    <form id="paymentForm">
+      <label for="phone">M-Pesa phone number</label>
+      <input
+        id="phone"
+        name="phone"
+        type="tel"
+        placeholder="07XXXXXXXX"
+        autocomplete="tel"
+        required
+      >
+
+      <label for="amount">Amount (KSh)</label>
+      <input
+        id="amount"
+        name="amount"
+        type="number"
+        min="1"
+        max="150000"
+        step="1"
+        placeholder="e.g. 100"
+        required
+      >
+
+      <button type="submit" id="payButton">
+        Request M-Pesa prompt
+      </button>
+    </form>
+
+    <p id="message" role="status" aria-live="polite"></p>
+    <p class="notice">
+      Your M-Pesa PIN is entered only on the official
+      M-Pesa prompt. Never share it with anyone.
+    </p>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
+
